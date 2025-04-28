@@ -9,7 +9,7 @@ lifecycleRuntimeKtx = "2.6.1"
 activityCompose = "1.8.0"
 composeBom = "2024.09.00"
 camerax = "1.3.0"
-mlkit-face-detection = "17.0.2"
+mlkit-face-detection = "16.1.6"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
