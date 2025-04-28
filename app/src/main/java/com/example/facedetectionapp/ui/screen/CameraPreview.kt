@@ -16,6 +16,40 @@ import android.Manifest
 import android.view.ViewGroup
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.OptIn
+import androidx.camera.core.ExperimentalGetImage
+import androidx.camera.core.ImageAnalysis
+import androidx.camera.core.ImageProxy
+import com.google.mlkit.vision.face.FaceDetection
+import com.google.mlkit.vision.face.FaceDetectorOptions
+import com.google.mlkit.vision.common.InputImage
+
+@OptIn(ExperimentalGetImage::class)
+private fun processImageProxy(
+    detector: com.google.mlkit.vision.face.FaceDetector,
+    imageProxy: ImageProxy
+) {
+    val mediaImage = imageProxy.image
+    if (mediaImage != null) {
+        val image = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
+
+        detector.process(image)
+            .addOnSuccessListener { faces ->
+                if (faces.isNotEmpty()) {
+                    println("Yüz Bulundu! Adet: ${faces.size}")
+                }
+            }
+            .addOnFailureListener { e ->
+                e.printStackTrace()
+            }
+            .addOnCompleteListener {
+                imageProxy.close()
+            }
+    } else {
+        imageProxy.close()
+    }
+}
+
 
 @Composable
 fun CameraPreview(modifier: Modifier = Modifier) {
@@ -60,12 +94,28 @@ fun CameraPreview(modifier: Modifier = Modifier) {
 
                         preview.setSurfaceProvider(previewView.surfaceProvider)
 
+                        val options = FaceDetectorOptions.Builder()
+                            .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_FAST)
+                            .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_NONE)
+                            .build()
+
+                        val faceDetector = FaceDetection.getClient(options)
+
+                        val imageAnalyzer = ImageAnalysis.Builder()
+                            .build()
+                            .also {
+                                it.setAnalyzer(ContextCompat.getMainExecutor(ctx)) { imageProxy ->
+                                    processImageProxy(faceDetector, imageProxy)
+                                }
+                            }
+
                         try {
                             cameraProvider.unbindAll()
                             cameraProvider.bindToLifecycle(
                                 lifecycleOwner,
                                 cameraSelector,
-                                preview
+                                preview,
+                                imageAnalyzer
                             )
                         } catch (e: Exception) {
                             e.printStackTrace()
