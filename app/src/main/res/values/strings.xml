@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">FaceDetectionApp</string>
+    <string name="face_detected">Yüz Tespit Edildi!</string>
 </resources>
