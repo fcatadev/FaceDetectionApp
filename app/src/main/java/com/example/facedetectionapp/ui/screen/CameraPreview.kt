@@ -61,8 +61,9 @@ fun CameraPreview(modifier: Modifier = Modifier) {
     var faces by remember { mutableStateOf<List<Face>>(emptyList()) }
     var imageWidth by remember { mutableStateOf(1) }
     var imageHeight by remember { mutableStateOf(1) }
+    var imageRotation by remember { mutableStateOf(0) }
 
-    LaunchedEffect(key1 = true) {
+    LaunchedEffect(Unit) {
         if (!hasCameraPermission) {
             permissionLauncher.launch(Manifest.permission.CAMERA)
         }
@@ -70,10 +71,11 @@ fun CameraPreview(modifier: Modifier = Modifier) {
 
     if (hasCameraPermission) {
         Box(modifier = modifier.fillMaxSize()) {
+
             AndroidView(
                 factory = { ctx ->
                     PreviewView(ctx).apply {
-                        scaleType = PreviewView.ScaleType.FILL_CENTER
+                        scaleType = PreviewView.ScaleType.FIT_CENTER
                         layoutParams = ViewGroup.LayoutParams(
                             ViewGroup.LayoutParams.MATCH_PARENT,
                             ViewGroup.LayoutParams.MATCH_PARENT
@@ -85,7 +87,6 @@ fun CameraPreview(modifier: Modifier = Modifier) {
 
                             val preview = androidx.camera.core.Preview.Builder().build()
                             val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
-
                             preview.setSurfaceProvider(previewView.surfaceProvider)
 
                             val options = FaceDetectorOptions.Builder()
@@ -100,17 +101,16 @@ fun CameraPreview(modifier: Modifier = Modifier) {
                                 .also {
                                     it.setAnalyzer(ContextCompat.getMainExecutor(ctx)) { imageProxy ->
                                         processImageProxy(
-                                            faceDetector,
-                                            imageProxy,
-                                            onFaceDetected = { detected ->
-                                                faceDetected = detected
+                                            detector = faceDetector,
+                                            imageProxy = imageProxy,
+                                            onFaceDetected = { faceDetected = it },
+                                            onFacesDetected = { faces = it },
+                                            onImageSizeDetected = { w, h ->
+                                                imageWidth = w
+                                                imageHeight = h
                                             },
-                                            onFacesDetected = { detectedFaces ->
-                                                faces = detectedFaces
-                                            },
-                                            onImageSizeDetected = { width, height ->
-                                                imageWidth = width
-                                                imageHeight = height
+                                            onRotationDetected = { rotation ->
+                                                imageRotation = rotation
                                             }
                                         )
                                     }
@@ -137,13 +137,19 @@ fun CameraPreview(modifier: Modifier = Modifier) {
                 val canvasWidth = size.width
                 val canvasHeight = size.height
 
+                val (trueWidth, trueHeight) = if (imageRotation == 90 || imageRotation == 270) {
+                    imageHeight to imageWidth
+                } else {
+                    imageWidth to imageHeight
+                }
+
                 faces.forEach { face ->
                     val bounds = face.boundingBox
 
-                    val leftPercent = bounds.left.toFloat() / imageWidth
-                    val topPercent = bounds.top.toFloat() / imageHeight
-                    val widthPercent = bounds.width().toFloat() / imageWidth
-                    val heightPercent = bounds.height().toFloat() / imageHeight
+                    val leftPercent = bounds.left.toFloat() / trueWidth
+                    val topPercent = bounds.top.toFloat() / trueHeight
+                    val widthPercent = bounds.width().toFloat() / trueWidth
+                    val heightPercent = bounds.height().toFloat() / trueHeight
 
                     val left = canvasWidth * leftPercent
                     val top = canvasHeight * topPercent
@@ -165,7 +171,7 @@ fun CameraPreview(modifier: Modifier = Modifier) {
                         .align(Alignment.TopCenter)
                         .padding(top = 20.dp)
                         .background(
-                            color = Color.Black,
+                            color = Color.Green,
                             shape = RoundedCornerShape(5.dp)
                         ),
                     verticalArrangement = Arrangement.Center,
@@ -182,19 +188,23 @@ fun CameraPreview(modifier: Modifier = Modifier) {
     }
 }
 
+
 @androidx.annotation.OptIn(ExperimentalGetImage::class)
 private fun processImageProxy(
     detector: com.google.mlkit.vision.face.FaceDetector,
     imageProxy: ImageProxy,
     onFaceDetected: (Boolean) -> Unit,
     onFacesDetected: (List<Face>) -> Unit,
-    onImageSizeDetected: (Int, Int) -> Unit
+    onImageSizeDetected: (Int, Int) -> Unit,
+    onRotationDetected: (Int) -> Unit
 ) {
     val mediaImage = imageProxy.image
     if (mediaImage != null) {
+        val rotation = imageProxy.imageInfo.rotationDegrees
+        onRotationDetected(rotation)
         onImageSizeDetected(imageProxy.width, imageProxy.height)
 
-        val image = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
+        val image = InputImage.fromMediaImage(mediaImage, rotation)
 
         detector.process(image)
             .addOnSuccessListener { faces ->
@@ -213,6 +223,7 @@ private fun processImageProxy(
         imageProxy.close()
     }
 }
+
 
 
 
