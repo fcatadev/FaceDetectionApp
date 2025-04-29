@@ -30,9 +30,9 @@ This is a real-time face detection Android application built using **Jetpack Com
 
 ## 📱 Screenshots
 
-| Portrait | Landscape |
-|---------|-----------|
-| ![Portrait](app/src/main/java/com/example/facedetectionapp/screenshots/faceDetected1.jpg) | ![Landscape](app/src/main/java/com/example/facedetectionapp/screenshots/faceDetected2.jpg) |
+| Portrait | Landscape                                                                              |
+|---------|----------------------------------------------------------------------------------------|
+| ![Portrait](app/src/main/java/com/example/facedetectionapp/screenshots/faceDetected1.jpg) | ![Landscape](app/src/main/java/com/example/facedetectionapp/screenshots/landscape.jpg) |
 
 ---
 
