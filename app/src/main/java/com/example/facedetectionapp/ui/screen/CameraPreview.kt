@@ -224,9 +224,6 @@ private fun processImageProxy(
     }
 }
 
-
-
-
 @SuppressLint("ResourceAsColor")
 @Composable
 fun FaceDetectedText() {
